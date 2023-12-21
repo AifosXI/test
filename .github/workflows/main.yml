@@ -1,0 +1,53 @@
+name: Symfony CI
+on:
+  release:
+    types: [ created ]
+  pull_request:
+    types: [ opened ]
+  push:
+jobs:
+  test-ci:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Use composite
+        uses: ./.github/actions/symfony-ci
+
+  test-symfony-console:
+    runs-on: ubuntu-20.04
+    needs: test-ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Use composite
+        uses: ./.github/actions/symfony-ci
+
+      - name: Check php bin/console version
+        run: php bin/console -V
+
+  create-prerelease:
+    runs-on: ubuntu-20.04
+    needs: test-ci
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Use composite
+        uses: ./.github/actions/symfony-ci
+
+      - name: Build
+        run: php bin/console cache:clear --env=prod --no-debug --no-warmup
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Development Build"
+          files: |
+            LICENSE.txt
+            *.jar
