@@ -1,7 +1,7 @@
 name: Symfony CI
 on:
   release:
-    types: [ created ]
+    types: [ published ]
   pull_request:
     types: [ opened ]
   push:
@@ -42,12 +42,27 @@ jobs:
       - name: Build
         run: php bin/console cache:clear --env=prod --no-debug --no-warmup
 
-      - uses: "marvinpinto/action-automatic-releases@latest"
+      - name: Pre release creation with latest tag
+        uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
           prerelease: true
           title: "Development Build"
+          files: |
+            LICENSE.txt
+            *.jar
+
+  create-tagged-release:
+    runs-on: ubuntu-20.04
+    needs: test-ci
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Create tagged release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
           files: |
             LICENSE.txt
             *.jar
